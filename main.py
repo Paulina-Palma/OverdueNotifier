@@ -10,13 +10,13 @@ from emails import EmailSender, Credentials
 load_dotenv()
 connection = sqlite3.connect(getenv('DB_NAME'))
 
-ssl_enable = getenv('SSL_ENABLE', False)
-port = getenv('PORT')
+ssl_enable = getenv('SSL_ENABLE', 'False').lower() in ['true', '1', 't']
+port = int(getenv('PORT', 587))
 smtp_server = getenv('SMTP_SERVER')
 username = getenv('MAIL_USERNAME')
 password = getenv('MAIL_PASSWORD')
 
-subject = getenv('SUBJECT')
+subject = getenv('SUBJECT', 'Proszę o pilny zwrot książek')
 sender = getenv('SENDER')
 
 credentials = Credentials(username, password)
@@ -24,22 +24,21 @@ credentials = Credentials(username, password)
 
 def setup(connection):
     with Database(connection) as database:
-        database.cursor.execute('''CREATE TABLE borrows(
-            id INTEGER primary key autoincrement,
+        database.cursor.execute('''CREATE TABLE IF NOT EXISTS borrows(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
             email TEXT,
             book_title TEXT,
             book_return_at DATE)''')
 
 
-def send_reminder_to_borrowers(borrower):
+def send_reminder_to_borrowers(connection, borrower):
     template = Template('''
-    Hej $name!
-    Pamiętasz, że masz moją książkę $title ??!!
-    Oddaj mi ją jak najszybciej!
+    Dzień dobry $name!
+    Pamiętasz, że masz wypożyczoną książkę $title ??!!
     Data zwrotu minęła $book_return_at
 
-    Czekam!
+    Prosimy o pilny zwrot!
     ''')
     text = template.substitute({
         'name': borrower.name,
@@ -47,19 +46,22 @@ def send_reminder_to_borrowers(borrower):
         'book_return_at': borrower.book_return_at
     })
 
-    message = email.message_from_string(text)
-
-    message.set_charset('utf-8')
+    message = email.message.EmailMessage()
+    message.set_content(text)
     message['From'] = sender
     message['To'] = borrower.email
-    message['Subject'] = 'Oddaj mi natychmiast'
-    connection.sendmail(sender, borrower.email, message)
+    message['Subject'] = subject
 
+    connection.send_message(message)
     print(f'Wysyłam email do {borrower.email}')
 
 
 if __name__ == '__main__':
+    setup(connection)
     borrowers = get_borrowers_by_return_date(connection, '2024-12-24')
-    with EmailSender(port, smtp_server, credentials) as connection:
+    with EmailSender(port, smtp_server, credentials, ssl_enable) as email_connection:
         for borrower in borrowers:
-            send_reminder_to_borrowers(borrower)
+            try:
+                send_reminder_to_borrowers(email_connection, borrower)
+            except Exception as e:
+                print(f'Failed to send email to {borrower.email}: {e}')
