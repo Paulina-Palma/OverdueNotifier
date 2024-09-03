@@ -13,5 +13,8 @@ class Database:
         else:
             self.connection.commit()
 
+        if self.cursor:
+            self.cursor.close()
+
         self.connection.close()
 

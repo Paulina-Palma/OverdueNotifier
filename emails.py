@@ -24,9 +24,14 @@ class EmailSender:
         return self
 
     def sendmail(self, sender, receiver, message):
-        self.connection.sendmail(sender, receiver, message.as_string())
+        try:
+            self.connection.sendmail(sender, receiver, message.as_string())
+        except Exception as e:
+            print(f"Failed to send email: {e}")
+            raise
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.connection.close()
+        if self.connection:
+            self.connection.quit()
 
 
