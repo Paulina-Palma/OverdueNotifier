@@ -1,4 +1,4 @@
-# Overdue Notifier
+# Overdue Notifier - Book Reminder
 
 ## Project Overview
 
@@ -19,3 +19,27 @@ This project aims to automate sending email reminders to borrowers who have over
 
 * __EmailSender Class__: Manages SMTP connections for sending emails, supporting both SSL and non-SSL connections.
 * __send_reminder_to_borrowers Function__: Sends a reminder email to each borrower.
+
+## Code Summary
+
+### Database Class
+
+Manages database connections using context management for automatic commit/rollback.
+
+### get_borrowers_by_return_date Function
+
+Fetches borrowers with overdue books.
+
+### EmailSender Class
+
+Handles the setup and teardown of SMTP connections for sending emails.
+
+### send_reminder_to_borrowers Function
+
+Sends reminder emails to borrowers.
+
+## Execution Flow
+
+* Setup Database: Create the borrows table if it doesn’t exist.
+* Fetch Borrowers: Retrieve borrowers with overdue books.
+* Send Emails: Use EmailSender to send reminder emails to each borrower.
